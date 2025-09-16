@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚚 Seguimiento de Envío #FAKE-789654</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .tracking-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .tracking-info {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .progress-section {
+            padding: 20px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .status-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-top: 40px;
+        }
+
+        .status-step {
+            text-align: center;
+            width: 100px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            background: #bdc3c7;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .step-active .step-icon {
+            background: #3498db;
+        }
+
+        .step-completed .step-icon {
+            background: #2ecc71;
+        }
+
+        .map-section {
+            padding: 20px;
+        }
+
+        #map {
+            height: 300px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #update-btn {
+            background: #3498db;
+            color: white;
+        }
+
+        #update-btn:hover {
+            background: #2980b9;
+        }
+
+        #auto-update {
+            background: #2ecc71;
+            color: white;
+        }
+
+        #auto-update:hover {
+            background: #27ae60;
+        }
+
+        #reset-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        #reset-btn:hover {
+            background: #c0392b;
+        }
+
+        .history-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .history-item {
+            padding: 15px;
+            background: white;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .status-preparation { background: #f39c12; color: white; }
+        .status-transit { background: #3498db; color: white; }
+        .status-delivered { background: #2ecc71; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 Sistema de Seguimiento de Paquetería</h1>
+            <p>Número de tracking: <strong>#FAKE-789654</strong></p>
+        </header>
+
+        <div class="tracking-info">
+            <div class="progress-section">
+                <h2>Estado del Envío</h2>
+                <div id="current-status" class="status-badge status-preparation">Preparación</div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+
+                <div class="status-steps">
+                    <div class="status-step step-completed">
+                        <div class="step-icon">1</div>
+                        <div>Orden</div>
+                    </div>
+                    <div class="status-step step-active">
+                        <div class="step-icon">2</div>
+                        <div>Preparación</div>
+                    </div>
+                    <div class="status-step">
+                        <div class="step-icon">3</div>
+                        <div>Tránsito</div>
+                    </div>
+                    <div class="status-step">
+                        <div class="step-icon">4</div>
+                        <div>Reparto</div>
+                    </div>
+                    <div class="status-step">
+                        <div class="step-icon">5</div>
+                        <div>Entregado</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-section">
+                <h2>Ubicación Actual</h2>
+                <div id="map"></div>
+                <div id="location-info">Centro de distribución principal</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="update-btn">🔄 Actualizar Estado</button>
+            <button id="auto-update">⚡ Auto-actualizar (5s)</button>
+            <button id="reset-btn">🔄 Reiniciar Simulación</button>
+        </div>
+
+        <div class="history-section">
+            <h2>📋 Historial de Actualizaciones</h2>
+            <div id="history-list">
+                <div class="history-item">
+                    <strong>[16/09/2024 10:30]</strong> - Orden recibida y confirmada
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2024 Servicio de Paquetería Simulado - Este es un simulador de demostración</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuración inicial
+        const trackingSteps = [
+            {
+                status: "Orden confirmada",
+                progress: 0,
+                location: [40.7128, -74.0060], // NYC
+                message: "Orden recibida y confirmada"
+            },
+            {
+                status: "Preparación",
+                progress: 25,
+                location: [40.7128, -74.0060],
+                message: "Paquete en preparación"
+            },
+            {
+                status: "En tránsito",
+                progress: 50,
+                location: [39.9526, -75.1652], // Philadelphia
+                message: "En camino al centro de distribución"
+            },
+            {
+                status: "En almacén",
+                progress: 75,
+                location: [38.9072, -77.0369], // Washington DC
+                message: "Llegada a almacén regional"
+            },
+            {
+                status: "En reparto",
+                progress: 90,
+                location: [39.2904, -76.6122], // Baltimore
+                message: "En reparto local"
+            },
+            {
+                status: "Entregado",
+                progress: 100,
+                location: [39.2830, -76.6217], // Baltimore destino
+                message: "Paquete entregado con éxito"
+            }
+        ];
+
+        let currentStep = 1;
+        let map;
+        let marker;
+        let autoUpdateInterval;
+
+        // Inicializar mapa
+        function initMap() {
+            map = L.map('map').setView([40.7128, -74.0060], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            marker = L.marker([40.7128, -74.0060]).addTo(map)
+                .bindPopup('Centro de distribución principal')
+                .openPopup();
+        }
+
+        // Actualizar estado
+        function updateStatus() {
+            if (currentStep < trackingSteps.length) {
+                const step = trackingSteps[currentStep];
+                
+                // Actualizar progreso
+                document.getElementById('progress-fill').style.width = step.progress + '%';
+                
+                // Actualizar texto de estado
+                const statusBadge = document.getElementById('current-status');
+                statusBadge.textContent = step.status;
+                statusBadge.className = 'status-badge status-' + step.status.toLowerCase().replace(' ', '-');
+                
+                // Actualizar mapa
+                map.setView(step.location, 13);
+                marker.setLatLng(step.location).bindPopup(step.message).openPopup();
+                
+                // Actualizar historial
+                const now = new Date();
+                const timestamp = now.toLocaleString('es-ES');
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = <strong>[${timestamp}]</strong> - ${step.message};
+                document.getElementById('history-list').prepend(historyItem);
+                
+                // Actualizar steps visuales
+                updateStepVisuals();
+                
+                currentStep++;
+            } else {
+                alert('¡El paquete ha sido entregado con éxito!');
+            }
+        }
+
+        function updateStepVisuals() {
+            const steps = document.querySelectorAll('.status-step');
+            steps.forEach((step, index) => {
+                step.classList.remove('step-active', 'step-completed');
+                if (index < currentStep) {
+                    step.classList.add('step-completed');
+                } else if (index === currentStep) {
+                    step.classList.add('step-active');
+                }
+            });
+        }
+
+        function startAutoUpdate() {
+            if (autoUpdateInterval) clearInterval(autoUpdateInterval);
+            autoUpdateInterval = setInterval(updateStatus, 5000);
+        }
+
+        function resetSimulation() {
+            currentStep = 1;
+            document.getElementById('progress-fill').style.width = '0%';
+            document.getElementById('current-status').textContent = 'Preparación';
+            document.getElementById('current-status').className = 'status-badge status-preparation';
+            document.getElementById('history-list').innerHTML = `
+                <div class="history-item">
+                    <strong>[${new Date().toLocaleString('es-ES')}]</strong> - Orden recibida y confirmada
+                </div>
+            `;
+            initMap();
+            updateStepVisuals();
+            if (autoUpdateInterval) clearInterval(autoUpdateInterval);
+        }
+
+        // Event listeners
+        document.getElementById('update-btn').addEventListener('click', updateStatus);
+        document.getElementById('auto-update').addEventListener('click', startAutoUpdate);
+        document.getElementById('reset-btn').addEventListener('click', resetSimulation);
+
+        // Inicializar
+        window.onload = function() {
+            initMap();
+            updateStepVisuals();
+        };
+    </script>
+</body>
+</html>
